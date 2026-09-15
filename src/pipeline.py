@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import yaml
+from dotenv import load_dotenv
 
 from fetchers.etsy_client import EtsyClient, DEFAULT_MAX_LISTINGS
 from fetchers.trends_client import get_trend_growth
@@ -17,6 +18,8 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT / "config" / "candidate_seeds.yaml"
 OUTPUT_DIR = ROOT / "output"
 LOGS_DIR = OUTPUT_DIR / "logs"
+
+load_dotenv(ROOT / ".env")
 
 
 def setup_logging():
@@ -62,12 +65,9 @@ def main() -> int:
             log.warning("  trends unavailable: %s", trend["error"])
 
         etsy_stats = etsy.fetch(keywords)
-        if dry_run:
-            log.info("  etsy (dry-run) -> count=%s avg_price=%s avg_age=%s",
-                     etsy_stats["total_count"], etsy_stats["avg_price"], etsy_stats["avg_age_days"])
-        else:
-            log.info("  etsy (live) -> count=%s avg_price=%s avg_age=%s",
-                     etsy_stats["total_count"], etsy_stats["avg_price"], etsy_stats["avg_age_days"])
+        log.info("  etsy -> count=%d per_phrase=%s avg_price=%s avg_age=%s",
+                 etsy_stats["total_count"], etsy_stats.get("per_phrase"),
+                 etsy_stats["avg_price"], etsy_stats["avg_age_days"])
 
         opp = opportunity_score(
             trend_growth_pct=trend["trend_growth_pct"],
@@ -75,6 +75,9 @@ def main() -> int:
             etsy_listing_count=etsy_stats["total_count"],
             avg_age_days=etsy_stats["avg_age_days"],
             weights=weights,
+            trend_ref=weights.get("trend_ref", 150.0),
+            comp_max_log10=weights.get("competition_max_log10_listings", 6.0),
+            fresh_max_days=weights.get("freshness_max_days", 365.0),
         )
         final = final_score(opp, seed["automation_fit"])
 
@@ -123,7 +126,7 @@ def write_report(results: list[dict], dry_run: bool) -> Path:
         "",
         "## Top Candidates",
         "",
-        "| # | Niche | Final | Opp. | Trend% | Etsy Listings | Avg Price | Avg Age Days | Type |",
+        "| # | Niche | Final | Opp. | Trend% | Etsy Listings | Med Price | Med Age Days | Type |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for i, r in enumerate(results, 1):
