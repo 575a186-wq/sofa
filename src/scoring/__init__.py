@@ -1,0 +1,1 @@
+"""Scoring logic for the niche research pipeline."""

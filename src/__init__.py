@@ -1,0 +1,1 @@
+"""Niche research pipeline package."""

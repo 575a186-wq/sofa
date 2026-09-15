@@ -1,0 +1,1 @@
+"""Data fetchers for the niche research pipeline."""

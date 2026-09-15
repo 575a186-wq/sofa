@@ -1,0 +1,68 @@
+# Candidate niche seeds for the POD niche research pipeline.
+# Populated from the concept funnel (Table 4.4) - parametric "Type B" niches first.
+# Weights for scoring live here so they can be calibrated after the first run.
+
+scoring:
+  trend_weight: 0.4
+  social_weight: 0.0
+  competition_weight: 0.3
+  freshness_weight: 0.3
+  competition_max_log10_listings: 4.0
+  freshness_max_days: 365.0
+
+niches:
+  - id: coordinate-map-art
+    name: "Coordinate / location map art"
+    keywords: ["custom location map art", "coordinate map print", "personalized map poster"]
+    art_type: parametric
+    automation_fit: 1.0
+    source_data: "lat/long or address -> map render"
+    geo: US
+
+  - id: star-map-art
+    name: "Star map of the sky on a date"
+    keywords: ["custom star map", "night sky star chart personalized", "birthday star map print"]
+    art_type: parametric
+    automation_fit: 1.0
+    source_data: "date + location -> astronomy render"
+    geo: US
+
+  - id: audio-waveform-art
+    name: "Audio waveform / sound wave art"
+    keywords: ["sound wave art personalized", "voice wave print", "music waveform poster"]
+    art_type: parametric
+    automation_fit: 1.0
+    source_data: "audio file -> waveform render"
+    geo: US
+
+  - id: natal-chart-art
+    name: "Natal chart / zodiac birth chart"
+    keywords: ["natal chart print", "zodiac birth chart poster", "astrology chart personalized"]
+    art_type: parametric
+    automation_fit: 1.0
+    source_data: "birth date + time + place -> ephemeris render"
+    geo: US
+
+  - id: family-tree-art
+    name: "Family tree / genealogy chart"
+    keywords: ["family tree chart print", "custom genealogy poster", "ancestry tree wall art"]
+    art_type: parametric
+    automation_fit: 1.0
+    source_data: "user input names + dates -> tree render"
+    geo: US
+
+  - id: gpx-route-art
+    name: "GPX running / hiking route art"
+    keywords: ["running route map print", "custom hike route poster", "gpx art wall decor"]
+    art_type: parametric
+    automation_fit: 1.0
+    source_data: "GPX file -> line art"
+    geo: US
+
+  - id: name-meaning-art
+    name: "Name meaning + birth stats"
+    keywords: ["custom name art print", "name meaning poster", "baby name wall art"]
+    art_type: parametric
+    automation_fit: 1.0
+    source_data: "name + date -> text + template visual"
+    geo: US
