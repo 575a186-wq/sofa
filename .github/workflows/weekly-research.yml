@@ -27,7 +27,7 @@ jobs:
       - name: Run pipeline
         run: python src/pipeline.py
         env:
-          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+          ETSY_API_KEY: ${{ secrets.SOFA_PICTURE }}
 
       - uses: actions/upload-artifact@v4
         with:
