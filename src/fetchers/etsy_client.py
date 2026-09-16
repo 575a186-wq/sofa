@@ -127,6 +127,57 @@ class EtsyClient:
             "avg_age_days": round(_median(ages), 1) if ages else None,
         }
 
+    def fetch_top(self, keyword: str, limit: int = 30) -> list[dict]:
+        """
+        Fetch top-N active listings for a single phrase (search relevance order)
+        for seller-concentration / freshness analysis.
+
+        Returns a list of:
+            {
+                "listing_id", "title", "price": float | None,
+                "age_days": float | None, "shop_id": int | None,
+            }
+        """
+        if self.dry_run:
+            return []
+        now = _dt.datetime.now(_dt.timezone.utc)
+        params = {"keywords": keyword, "limit": limit, "offset": 0}
+        data = self._get_with_retry(DEFAULT_BASE, params)
+        out: list[dict] = []
+        for r in data.get("results", []):
+            price = None
+            price_info = r.get("price")
+            if price_info and "amount" in price_info and "divisor" in price_info:
+                price = float(price_info["amount"]) / float(price_info["divisor"])
+            age_days = None
+            created_ts = r.get("created_timestamp")
+            if created_ts:
+                created_dt = _dt.datetime.fromtimestamp(created_ts, tz=_dt.timezone.utc)
+                age_days = (now - created_dt).days
+            out.append(
+                {
+                    "listing_id": r.get("listing_id"),
+                    "title": r.get("title"),
+                    "price": price,
+                    "age_days": age_days,
+                    "shop_id": r.get("shop_id"),
+                }
+            )
+        return out
+
+    def shop_names(self, shop_ids: set[int]) -> dict[int, str]:
+        """Map shop_ids to shop names via /application/shops/{id}."""
+        if self.dry_run:
+            return {}
+        names: dict[int, str] = {}
+        for shop_id in shop_ids:
+            resp = self._get_with_retry(
+                f"https://openapi.etsy.com/v3/application/shops/{shop_id}", {}
+            )
+            names[shop_id] = resp.get("shop_name") or str(shop_id)
+            time.sleep(0.8)
+        return names
+
     @staticmethod
     def _dry_run(keyword_phrases: list[str]) -> dict:
         """Deterministic fake data based on phrase hashes (no network)."""

@@ -124,3 +124,61 @@ def test_retry_on_429(monkeypatch):
     out = c.fetch(["kw"])
     assert calls["n"] == 3
     assert out["sample_size"] == 0
+
+
+def test_fetch_top_dry_run_returns_empty(monkeypatch):
+    monkeypatch.setattr("src.fetchers.etsy_client.requests.get",
+                        lambda *a, **k: (_ for _ in ()).throw(AssertionError("no network in dry-run")))
+    c = EtsyClient(api_key=None)
+    assert c.fetch_top("some phrase", limit=30) == []
+
+
+def test_fetch_top_parses_price_age_and_shop_id(monkeypatch):
+    import datetime as _dt
+
+    now = _dt.datetime.now(_dt.timezone.utc)
+    old_ts = int(now.timestamp()) - 60 * 60 * 24 * 45  # 45 days ago
+
+    class FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {"count": 1, "results": [{
+                "listing_id": 7,
+                "title": "Poster A",
+                "price": {"amount": 2999, "divisor": 100},
+                "created_timestamp": old_ts,
+                "shop_id": 42,
+            }]}
+
+    monkeypatch.setattr("src.fetchers.etsy_client.requests.get",
+                        lambda *a, **k: FakeResp())
+    c = EtsyClient(api_key="abc:secret")
+    rows = c.fetch_top("some phrase", limit=30)
+    assert len(rows) == 1
+    assert rows[0]["listing_id"] == 7
+    assert rows[0]["price"] == 29.99
+    assert 44 <= rows[0]["age_days"] <= 46
+    assert rows[0]["shop_id"] == 42
+
+
+def test_shop_names_maps_ids_and_skips_dry_run(monkeypatch):
+    class FakeResp:
+        status_code = 200
+        shop_name = "CoolShop"
+
+        def json(self):
+            return {"shop_id": 42, "shop_name": self.shop_name}
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        shop_id = int(url.rsplit("/", 1)[1])
+        return type("R", (), {"status_code": 200, "json": lambda self, sid=shop_id: {
+            "shop_id": sid, "shop_name": f"Shop{sid}"}})()
+
+    monkeypatch.setattr("src.fetchers.etsy_client.requests.get", fake_get)
+    monkeypatch.setattr("src.fetchers.etsy_client.time.sleep", lambda _s: None)
+    c = EtsyClient(api_key="abc:secret")
+    names = c.shop_names({42, 43, 42})
+    assert names == {42: "Shop42", 43: "Shop43"}
+    c_dry = EtsyClient(api_key=None)
+    assert c_dry.shop_names({1}) == {}
